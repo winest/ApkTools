@@ -1,12 +1,15 @@
-## About CILTools
+## About ApkTools
 
-CILTools is a set of utilities for your Common Intermediate Language files.<br />
+ApkTools is a set of utilities for creating Android ROM or modifying Android apk files.<br />
 <br />
 Main features:<br />
-  1. Assemble/Disassemble CIL file between *.dll and *.il<br />
-  2. Add/Subtract an address offset between specified lines<br />
-  3. Show the difference of two *.il files except comments and renamed variables<br />
-  4. Auto-merge *.il files if there is no difference between the same method. This is useful to merge your modification after the original *.il files updated while your intereting functions are not changed<br />
+  1. Generate apk list<br />
+  2. Rename apk to original name with version<br />
+  3. Rename apk to original name for Android 4.4 or lower<br />
+  4. Rename apk to original name for Android 5.0 or upper<br />
+  5. Sign apk<br />
+  6. Unpack apk file to source folder<br />
+  7. Re-Pack source folder to apk file<br />
 
 Please also download [CWUtils] (https://github.com/winest/CWUtils) for this utility to work.<br />
 To fix the include/reference path of CWUtils, you can use [JsTools] (https://github.com/winest/JsTools) to change them automatically or modify the path in Main.bat manually.<br />
