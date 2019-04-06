@@ -20,7 +20,7 @@ eval( LoadJs( "..\\..\\..\\_Include\\CWUtils\\JScript\\Windows\\CWGeneralUtils.j
 eval( LoadJs( "..\\..\\..\\_Include\\CWUtils\\JScript\\Windows\\CWFile.js" ) );
 eval( LoadJs( "..\\..\\..\\_Include\\CWUtils\\JScript\\Windows\\CWStd.js" ) );
 eval( LoadJs( "..\\..\\..\\_Include\\CWUtils\\JScript\\Windows\\CWShell.js" ) );
-eval( LoadJs( "LogApk.js" ) );
+eval( LoadJs( "ShowApk.js" ) );
 eval( LoadJs( "RenameApk.js" ) );
 
 
@@ -47,13 +47,13 @@ for ( ;; )
         {
             var strInFolderPath = CWUtils.SelectFolder( "Please enter the input folder path:" );
 
-            if ( true == TraverseAndLogApk( strInFolderPath , strLogFolder ) )
+            if ( true == TraverseAndShowApk( strInFolderPath , strLogFolder ) )
             {
-                WScript.Echo( "TraverseAndLogApk() succeed." );
+                WScript.Echo( "TraverseAndShowApk() succeed." );
             }
             else
             {
-                WScript.Echo( "TraverseAndLogApk() failed" );
+                WScript.Echo( "TraverseAndShowApk() failed" );
             }
             break;
         }
@@ -136,12 +136,41 @@ for ( ;; )
         }
         case "6" :
         {
-            WScript.Echo( "Not implemented yet" );
+            var strInPath = CWUtils.SelectFile( "Please enter the apk/zip file path:" );
+            var strOutPath = WshFileSystem.GetParentFolderName( strInPath ) + "\\" + WshFileSystem.GetBaseName( strInPath );
+            var execObj = CWUtils.Exec( "java -jar " +
+                                        "\"" + WshShell.CurrentDirectory + "\\_Tools\\apktool\\apktool.jar\" " + 
+                                        "d -f " +
+                                        "-o \"" + strOutPath + "\" " +
+                                        "\"" + strInPath + "\"" , true );
+            if ( 0 == execObj.ExitCode )
+            {
+                WScript.Echo( "Unpack succeed" );
+                WshFileSystem.CopyFile( strInPath , WshShell.CurrentDirectory + "\\_ApkBackup\\" + WshFileSystem.GetFileName( strInPath ) , true );
+            }
+            else
+            {
+                WScript.Echo( "Unpack failed with code " + execObj.ExitCode );
+            }
             break;
         }
         case "7" :
         {
-            WScript.Echo( "Not implemented yet" );
+            var strInPath = CWUtils.SelectFolder( "Please enter the source folder path:" );
+            var strOutPath = WshFileSystem.GetParentFolderName( strInPath ) + "\\" + WshFileSystem.GetFileName( strInPath ) + "_repacked.apk";
+            var execObj = CWUtils.Exec( "java -jar " +
+                                        "\"" + WshShell.CurrentDirectory + "\\_Tools\\apktool\\apktool.jar\" " + 
+                                        "b " +
+                                        "-o \"" + strOutPath + "\" " +
+                                        "\"" + strInPath + "\"" , true );
+            if ( 0 == execObj.ExitCode )
+            {
+                WScript.Echo( "Repack succeed" );
+            }
+            else
+            {
+                WScript.Echo( "Repack failed with code " + execObj.ExitCode );
+            }
             break;
         }
         case "8" :
