@@ -118,6 +118,12 @@ for ( ;; )
         {
             var strInPath = CWUtils.SelectFile( "Please enter the apk/zip file path:" );
             var strOutPath = WshFileSystem.GetParentFolderName( strInPath ) + "\\" + WshFileSystem.GetBaseName( strInPath ) + "_signed." + WshFileSystem.GetExtensionName( strInPath );
+            WScript.Echo( "java -jar " +
+                                        "\"" + WshShell.CurrentDirectory + "\\_Tools\\signapk\\signapk.jar\" " + 
+                                        "\"" + WshShell.CurrentDirectory + "\\_Tools\\signapk\\testkey.x509.pem\" " +
+                                        "\"" + WshShell.CurrentDirectory + "\\_Tools\\signapk\\testkey.pk8\" " +
+                                        "\"" + strInPath + "\" " +
+                                        "\"" + strOutPath + "\"" );
             var execObj = CWUtils.Exec( "java -jar " +
                                         "\"" + WshShell.CurrentDirectory + "\\_Tools\\signapk\\signapk.jar\" " + 
                                         "\"" + WshShell.CurrentDirectory + "\\_Tools\\signapk\\testkey.x509.pem\" " +
