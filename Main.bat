@@ -16,10 +16,10 @@ function LoadJs( aJsPath )
     file.Close();
     return strContent;
 }
-eval( LoadJs( "..\\..\\..\\_Include\\CWUtils\\JScript\\Windows\\CWGeneralUtils.js" ) );
-eval( LoadJs( "..\\..\\..\\_Include\\CWUtils\\JScript\\Windows\\CWFile.js" ) );
-eval( LoadJs( "..\\..\\..\\_Include\\CWUtils\\JScript\\Windows\\CWStd.js" ) );
-eval( LoadJs( "..\\..\\..\\_Include\\CWUtils\\JScript\\Windows\\CWShell.js" ) );
+eval( LoadJs( "..\\..\\..\\_3rdParty\\CWUtils\\JScript\\Windows\\CWGeneralUtils.js" ) );
+eval( LoadJs( "..\\..\\..\\_3rdParty\\CWUtils\\JScript\\Windows\\CWFile.js" ) );
+eval( LoadJs( "..\\..\\..\\_3rdParty\\CWUtils\\JScript\\Windows\\CWStd.js" ) );
+eval( LoadJs( "..\\..\\..\\_3rdParty\\CWUtils\\JScript\\Windows\\CWShell.js" ) );
 eval( LoadJs( "ShowApk.js" ) );
 eval( LoadJs( "RenameApk.js" ) );
 
