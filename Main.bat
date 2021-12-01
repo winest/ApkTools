@@ -39,7 +39,8 @@ for ( ;; )
                   "5. Sign apk\n" +
                   "6. Unpack apk\n" +
                   "7. Repack apk\n" +
-                  "8. Leave" );
+                  "8. Zip-Align apk\n" +
+                  "9. Leave" );
     var strChoice = WScript.StdIn.ReadLine();
     switch ( strChoice )
     {
@@ -118,18 +119,38 @@ for ( ;; )
         {
             var strInPath = CWUtils.SelectFile( "Please enter the apk/zip file path:" );
             var strOutPath = WshFileSystem.GetParentFolderName( strInPath ) + "\\" + WshFileSystem.GetBaseName( strInPath ) + "_signed." + WshFileSystem.GetExtensionName( strInPath );
-            WScript.Echo( "java -jar " +
-                                        "\"" + WshShell.CurrentDirectory + "\\_Tools\\signapk\\signapk.jar\" " + 
-                                        "\"" + WshShell.CurrentDirectory + "\\_Tools\\signapk\\testkey.x509.pem\" " +
-                                        "\"" + WshShell.CurrentDirectory + "\\_Tools\\signapk\\testkey.pk8\" " +
-                                        "\"" + strInPath + "\" " +
-                                        "\"" + strOutPath + "\"" );
-            var execObj = CWUtils.Exec( "java -jar " +
-                                        "\"" + WshShell.CurrentDirectory + "\\_Tools\\signapk\\signapk.jar\" " + 
-                                        "\"" + WshShell.CurrentDirectory + "\\_Tools\\signapk\\testkey.x509.pem\" " +
-                                        "\"" + WshShell.CurrentDirectory + "\\_Tools\\signapk\\testkey.pk8\" " +
-                                        "\"" + strInPath + "\" " +
-                                        "\"" + strOutPath + "\"" , true );
+            var aryOutput = [];
+            var execObj = CWUtils.Exec( "java --version" , true , aryOutput );
+            //java 11.0.2 2019-01-15 LTS
+            //java version "1.8.0_251"
+            //openjdk 11 2018-09-25
+            var regex = /(java|openjdk) (version 1\.)?([0-9]+)[ .].+/;
+            var match = regex.exec( aryOutput[0] );
+            var uJavaVer = parseInt( match[3] );
+            
+            var cmd = "";
+            if ( uJavaVer >= 9 )
+            {
+                cmd = "java -jar " +
+                      "\"" + WshShell.CurrentDirectory + "\\_Tools\\\apksigner\\\apksigner.jar\" " + 
+                      "sign " +
+                      "--cert \"" + WshShell.CurrentDirectory + "\\_Tools\\apksigner\\testkey.x509.pem\" " +
+                      "--key \"" + WshShell.CurrentDirectory + "\\_Tools\\apksigner\\testkey.pk8\" " +
+                      "--in \"" + strInPath + "\" " +
+                      "--out \"" + strOutPath + "\"";
+            }
+            else
+            {
+                cmd = "java -jar " +
+                      "\"" + WshShell.CurrentDirectory + "\\_Tools\\signapk\\signapk.jar\" " + 
+                      "\"" + WshShell.CurrentDirectory + "\\_Tools\\signapk\\testkey.x509.pem\" " +
+                      "\"" + WshShell.CurrentDirectory + "\\_Tools\\signapk\\testkey.pk8\" " +
+                      "\"" + strInPath + "\" " +
+                      "\"" + strOutPath + "\"";
+            }
+            
+            WScript.Echo( cmd );
+            var execObj = CWUtils.Exec( cmd , true , aryOutput );
             if ( 0 == execObj.ExitCode )
             {
                 WScript.Echo( "Sign succeed" );
@@ -137,6 +158,10 @@ for ( ;; )
             else
             {
                 WScript.Echo( "Sign failed with code " + execObj.ExitCode );
+                for (var i = 0; i < aryOutput.length; ++i)
+                {
+                    WScript.Echo( aryOutput[i] );
+                }
             }
             break;
         }
@@ -144,8 +169,7 @@ for ( ;; )
         {
             var strInPath = CWUtils.SelectFile( "Please enter the apk/zip file path:" );
             var strOutPath = WshFileSystem.GetParentFolderName( strInPath ) + "\\" + WshFileSystem.GetBaseName( strInPath );
-            var execObj = CWUtils.Exec( "java -jar " +
-                                        "\"" + WshShell.CurrentDirectory + "\\_Tools\\apktool\\apktool.jar\" " + 
+            var execObj = CWUtils.Exec( "\"" + WshShell.CurrentDirectory + "\\_Tools\\apktool\\apktool.bat\" " + 
                                         "d -f " +
                                         "-o \"" + strOutPath + "\" " +
                                         "\"" + strInPath + "\"" , true );
@@ -164,8 +188,7 @@ for ( ;; )
         {
             var strInPath = CWUtils.SelectFolder( "Please enter the source folder path:" );
             var strOutPath = WshFileSystem.GetParentFolderName( strInPath ) + "\\" + WshFileSystem.GetFileName( strInPath ) + "_repacked.apk";
-            var execObj = CWUtils.Exec( "java -jar " +
-                                        "\"" + WshShell.CurrentDirectory + "\\_Tools\\apktool\\apktool.jar\" " + 
+            var execObj = CWUtils.Exec( "\"" + WshShell.CurrentDirectory + "\\_Tools\\apktool\\apktool.bat\" " + 
                                         "b " +
                                         "-o \"" + strOutPath + "\" " +
                                         "\"" + strInPath + "\"" , true );
@@ -180,6 +203,31 @@ for ( ;; )
             break;
         }
         case "8" :
+        {
+            var strInPath = CWUtils.SelectFile( "Please enter the apk/zip file path:" );
+            var strOutPath = WshFileSystem.GetParentFolderName( strInPath ) + "\\" + WshFileSystem.GetBaseName( strInPath ) + "_aligned." + WshFileSystem.GetExtensionName( strInPath );
+            
+            var cmd = "\"" + WshShell.CurrentDirectory + "\\_Tools\\zipalign\\zipalign.exe\" " + 
+                      "-p -v 4 " +
+                      "\"" + strInPath + "\" " +
+                      "\"" + strOutPath + "\"";
+            WScript.Echo( cmd );
+            var execObj = CWUtils.Exec( cmd , true , aryOutput );
+            if ( 0 == execObj.ExitCode )
+            {
+                WScript.Echo( "Zip-Align succeed" );
+            }
+            else
+            {
+                WScript.Echo( "Zip-Align failed with code " + execObj.ExitCode );
+                for (var i = 0; i < aryOutput.length; ++i)
+                {
+                    WScript.Echo( aryOutput[i] );
+                }
+            }
+            break;
+        }
+        case "9" :
         {
             if ( true == CWUtils.SelectYesNo( "Are you going to leave? (y/n)" ) )
             {
