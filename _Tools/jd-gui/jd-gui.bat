@@ -24,6 +24,3 @@ setlocal DisableDelayedExpansion
 
 :load
 %java_exe% -jar -Duser.language=en -Dfile.encoding=UTF8 "%~dp0%BASENAME%%max%.jar" %*
-
-rem Pause when ran non interactively
-for /f "tokens=2" %%# in ("%cmdcmdline%") do if /i "%%#" equ "/c" pause

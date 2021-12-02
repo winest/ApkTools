@@ -30,17 +30,18 @@ CleanLogFolder();
 
 for ( ;; )
 {
-    WScript.Echo( "\n\n\n========== Common Intermediate Language Tools by winest ==========\n" );
+    WScript.Echo( "\n\n\n========== Apk Tools by winest ==========\n" );
     WScript.Echo( "What would you like to do?\n" +
                   "1. Generate apk list\n" +
                   "2. Rename apk to original name with version\n" +
                   "3. Rename apk to original name for Android 4.4 or lower\n" +
                   "4. Rename apk to original name for Android 5.0 or upper\n" +
-                  "5. Sign apk\n" +
-                  "6. Unpack apk\n" +
+                  "5. Unpack apk\n" +
+                  "6. Repack + Zip-Align + Sign apk\n" +
                   "7. Repack apk\n" +
                   "8. Zip-Align apk\n" +
-                  "9. Leave" );
+                  "9. Sign apk\n" +
+                  "0. Leave" );
     var strChoice = WScript.StdIn.ReadLine();
     switch ( strChoice )
     {
@@ -95,7 +96,7 @@ for ( ;; )
                 WScript.Echo( "RenameApkToRom44() failed" );
             }
             break;
-        }    
+        }
         case "4" :
         {
             var strInFolderPath = CWUtils.SelectFolder( "Please enter the input folder path:" , true );
@@ -114,73 +115,31 @@ for ( ;; )
                 WScript.Echo( "RenameApkToRom50() failed" );
             }
             break;
-        }        
+        }
         case "5" :
         {
             var strInPath = CWUtils.SelectFile( "Please enter the apk/zip file path:" );
-            var strOutPath = WshFileSystem.GetParentFolderName( strInPath ) + "\\" + WshFileSystem.GetBaseName( strInPath ) + "_signed." + WshFileSystem.GetExtensionName( strInPath );
-            var aryOutput = [];
-            var execObj = CWUtils.Exec( "java --version" , true , aryOutput );
-            //java 11.0.2 2019-01-15 LTS
-            //java version "1.8.0_251"
-            //openjdk 11 2018-09-25
-            var regex = /(java|openjdk) (version 1\.)?([0-9]+)[ .].+/;
-            var match = regex.exec( aryOutput[0] );
-            var uJavaVer = parseInt( match[3] );
-            
-            var cmd = "";
-            if ( uJavaVer >= 9 )
-            {
-                cmd = "java -jar " +
-                      "\"" + WshShell.CurrentDirectory + "\\_Tools\\\apksigner\\\apksigner.jar\" " + 
-                      "sign " +
-                      "--cert \"" + WshShell.CurrentDirectory + "\\_Tools\\apksigner\\testkey.x509.pem\" " +
-                      "--key \"" + WshShell.CurrentDirectory + "\\_Tools\\apksigner\\testkey.pk8\" " +
-                      "--in \"" + strInPath + "\" " +
-                      "--out \"" + strOutPath + "\"";
-            }
-            else
-            {
-                cmd = "java -jar " +
-                      "\"" + WshShell.CurrentDirectory + "\\_Tools\\signapk\\signapk.jar\" " + 
-                      "\"" + WshShell.CurrentDirectory + "\\_Tools\\signapk\\testkey.x509.pem\" " +
-                      "\"" + WshShell.CurrentDirectory + "\\_Tools\\signapk\\testkey.pk8\" " +
-                      "\"" + strInPath + "\" " +
-                      "\"" + strOutPath + "\"";
-            }
-            
-            WScript.Echo( cmd );
-            var execObj = CWUtils.Exec( cmd , true , aryOutput );
-            if ( 0 == execObj.ExitCode )
-            {
-                WScript.Echo( "Sign succeed" );
-            }
-            else
-            {
-                WScript.Echo( "Sign failed with code " + execObj.ExitCode );
-                for (var i = 0; i < aryOutput.length; ++i)
-                {
-                    WScript.Echo( aryOutput[i] );
-                }
-            }
+            var strOutPath = WshFileSystem.GetParentFolderName( strInPath ) + "\\" + WshFileSystem.GetBaseName( strInPath );
+            UnpackApk( strInPath , strOutPath );
             break;
         }
         case "6" :
         {
-            var strInPath = CWUtils.SelectFile( "Please enter the apk/zip file path:" );
-            var strOutPath = WshFileSystem.GetParentFolderName( strInPath ) + "\\" + WshFileSystem.GetBaseName( strInPath );
-            var execObj = CWUtils.Exec( "\"" + WshShell.CurrentDirectory + "\\_Tools\\apktool\\apktool.bat\" " + 
-                                        "d -f " +
-                                        "-o \"" + strOutPath + "\" " +
-                                        "\"" + strInPath + "\"" , true );
-            if ( 0 == execObj.ExitCode )
+            var strInPath = CWUtils.SelectFolder( "Please enter the source folder path:" );
+            var strRepackedPath = WshFileSystem.GetParentFolderName( strInPath ) + "\\" + WshFileSystem.GetFileName( strInPath ) + "_repacked.apk";
+            var strZipAlignedPath = WshFileSystem.GetParentFolderName( strRepackedPath ) + "\\" + WshFileSystem.GetBaseName( strRepackedPath ) + "_aligned." + WshFileSystem.GetExtensionName( strRepackedPath );
+            var strSignedPath = WshFileSystem.GetParentFolderName( strZipAlignedPath ) + "\\" + WshFileSystem.GetBaseName( strZipAlignedPath ) + "_signed." + WshFileSystem.GetExtensionName( strZipAlignedPath );
+            if ( false == RepackApk( strInPath , strRepackedPath ) )
             {
-                WScript.Echo( "Unpack succeed" );
-                WshFileSystem.CopyFile( strInPath , WshShell.CurrentDirectory + "\\_ApkBackup\\" + WshFileSystem.GetFileName( strInPath ) , true );
+                break;
             }
-            else
+            if ( false == ZipAlignApk( strRepackedPath , strZipAlignedPath ) )
             {
-                WScript.Echo( "Unpack failed with code " + execObj.ExitCode );
+                break;
+            }
+            if ( false == SignApk( strZipAlignedPath , strSignedPath ) )
+            {
+                break;
             }
             break;
         }
@@ -188,46 +147,24 @@ for ( ;; )
         {
             var strInPath = CWUtils.SelectFolder( "Please enter the source folder path:" );
             var strOutPath = WshFileSystem.GetParentFolderName( strInPath ) + "\\" + WshFileSystem.GetFileName( strInPath ) + "_repacked.apk";
-            var execObj = CWUtils.Exec( "\"" + WshShell.CurrentDirectory + "\\_Tools\\apktool\\apktool.bat\" " + 
-                                        "b " +
-                                        "-o \"" + strOutPath + "\" " +
-                                        "\"" + strInPath + "\"" , true );
-            if ( 0 == execObj.ExitCode )
-            {
-                WScript.Echo( "Repack succeed" );
-            }
-            else
-            {
-                WScript.Echo( "Repack failed with code " + execObj.ExitCode );
-            }
+            RepackApk( strInPut , strOutPath );
             break;
         }
         case "8" :
         {
             var strInPath = CWUtils.SelectFile( "Please enter the apk/zip file path:" );
             var strOutPath = WshFileSystem.GetParentFolderName( strInPath ) + "\\" + WshFileSystem.GetBaseName( strInPath ) + "_aligned." + WshFileSystem.GetExtensionName( strInPath );
-            
-            var cmd = "\"" + WshShell.CurrentDirectory + "\\_Tools\\zipalign\\zipalign.exe\" " + 
-                      "-p -v 4 " +
-                      "\"" + strInPath + "\" " +
-                      "\"" + strOutPath + "\"";
-            WScript.Echo( cmd );
-            var execObj = CWUtils.Exec( cmd , true , aryOutput );
-            if ( 0 == execObj.ExitCode )
-            {
-                WScript.Echo( "Zip-Align succeed" );
-            }
-            else
-            {
-                WScript.Echo( "Zip-Align failed with code " + execObj.ExitCode );
-                for (var i = 0; i < aryOutput.length; ++i)
-                {
-                    WScript.Echo( aryOutput[i] );
-                }
-            }
+            ZipAlignApk( strInPath , strOutPath );
             break;
         }
         case "9" :
+        {
+            var strInPath = CWUtils.SelectFile( "Please enter the apk/zip file path:" );
+            var strOutPath = WshFileSystem.GetParentFolderName( strInPath ) + "\\" + WshFileSystem.GetBaseName( strInPath ) + "_signed." + WshFileSystem.GetExtensionName( strInPath );
+            SignApk( strInPath , strOutPath );
+            break;
+        }
+        case "0" :
         {
             if ( true == CWUtils.SelectYesNo( "Are you going to leave? (y/n)" ) )
             {
@@ -243,6 +180,7 @@ for ( ;; )
         }
     }
 }
+
 
 
 function CleanLogFolder()
@@ -261,5 +199,123 @@ function CleanLogFolder()
         {
             WshFileSystem.DeleteFile( enumFile.item().Path , true );
         }
+    }
+}
+
+function UnpackApk( aOrgApkPath , aUnpackedFolder )
+{
+    var cmd = "\"" + WshShell.CurrentDirectory + "\\_Tools\\apktool\\apktool.bat\" " +
+              "d -f " +
+              "-o \"" + aUnpackedFolder + "\" " +
+              "\"" + aOrgApkPath + "\"";
+    var msg = {};
+    var execObj = CWUtils.Exec( cmd , true , msg , true );
+    if ( 0 == execObj.ExitCode )
+    {
+        WScript.Echo( "UnpackApk succeed" );
+        WshFileSystem.CopyFile( aOrgApkPath , WshShell.CurrentDirectory + "\\_ApkBackup\\" + WshFileSystem.GetFileName( aOrgApkPath ) , true );
+        return true;
+    }
+    else
+    {
+        WScript.Echo( "UnpackApk failed with code " + execObj.ExitCode );
+        WScript.Echo( "========== Cmd ==========\n" + cmd );
+        WScript.Echo( "========== StdOut ==========\n" + msg.stdout );
+        WScript.Echo( "========== StdErr ==========\n" + msg.stderr );
+        return false;
+    }
+}
+
+function RepackApk( aUnpackedFolder , aNewApkPath )
+{
+    var cmd = "\"" + WshShell.CurrentDirectory + "\\_Tools\\apktool\\apktool.bat\" " +
+              "b " +
+              "-o \"" + aNewApkPath + "\" " +
+              "\"" + aUnpackedFolder + "\"";
+    var msg = {};
+    var execObj = CWUtils.Exec( cmd , true , msg , true );
+    if ( 0 == execObj.ExitCode )
+    {
+        WScript.Echo( "RepackApk succeed" );
+        return true;
+    }
+    else
+    {
+        WScript.Echo( "RepackApk failed with code " + execObj.ExitCode );
+        WScript.Echo( "========== Cmd ==========\n" + cmd );
+        WScript.Echo( "========== StdOut ==========\n" + msg.stdout );
+        WScript.Echo( "========== StdErr ==========\n" + msg.stderr );
+        return false;
+    }
+}
+
+function ZipAlignApk( aOldApkPath , aNewApkPath )
+{
+    var cmd = "\"" + WshShell.CurrentDirectory + "\\_Tools\\zipalign\\zipalign.exe\" " +
+              "-f -p -v 4 " +
+              "\"" + aOldApkPath + "\" " +
+              "\"" + aNewApkPath + "\"";
+    var msg = {};
+    var execObj = CWUtils.Exec( cmd , true , msg );
+    if ( 0 == execObj.ExitCode )
+    {
+        WScript.Echo( "ZipAlignApk succeed" );
+        return true;
+    }
+    else
+    {
+        WScript.Echo( "ZipAlignApk failed with code " + execObj.ExitCode );
+        WScript.Echo( "========== Cmd ==========\n" + cmd );
+        WScript.Echo( "========== StdOut ==========\n" + msg.stdout );
+        WScript.Echo( "========== StdErr ==========\n" + msg.stderr );
+        return false;
+    }
+}
+
+function SignApk( aOldApkPath , aNewApkPath )
+{
+    var msg = {};
+    var execObj = CWUtils.Exec( "java --version" , true , msg );
+    //java 11.0.2 2019-01-15 LTS
+    //java version "1.8.0_251"
+    //openjdk 11 2018-09-25
+    var regex = /(java|openjdk) (version 1\.)?([0-9]+)[ .].+/;
+    var match = regex.exec( msg.stdout );
+    var uJavaVer = parseInt( match[3] );
+
+    var cmd = "";
+    if ( uJavaVer >= 9 )
+    {
+        cmd = "java -jar " +
+              "\"" + WshShell.CurrentDirectory + "\\_Tools\\\apksigner\\\apksigner.jar\" " +
+              "sign " +
+              "--cert \"" + WshShell.CurrentDirectory + "\\_Tools\\apksigner\\testkey.x509.pem\" " +
+              "--key \"" + WshShell.CurrentDirectory + "\\_Tools\\apksigner\\testkey.pk8\" " +
+              "--in \"" + aOldApkPath + "\" " +
+              "--out \"" + aNewApkPath + "\"";
+    }
+    else
+    {
+        cmd = "java -jar " +
+              "\"" + WshShell.CurrentDirectory + "\\_Tools\\signapk\\signapk.jar\" " +
+              "\"" + WshShell.CurrentDirectory + "\\_Tools\\signapk\\testkey.x509.pem\" " +
+              "\"" + WshShell.CurrentDirectory + "\\_Tools\\signapk\\testkey.pk8\" " +
+              "\"" + aOldApkPath + "\" " +
+              "\"" + aNewApkPath + "\"";
+    }
+
+    var execObj = CWUtils.Exec( cmd , true , msg );
+    if ( 0 == execObj.ExitCode )
+    {
+        WScript.Echo( "SignApk succeed" );
+        return true;
+    }
+    else
+    {
+        WScript.Echo( "SignApk failed with code " + execObj.ExitCode );
+        WScript.Echo( "========== Cmd ==========\n" + cmd );
+        WScript.Echo( "========== StdOut ==========\n" + msg.stdout );
+        WScript.Echo( "========== StdErr ==========\n" + msg.stderr );
+        return false;
     }
 }
