@@ -106,5 +106,5 @@ set a=%~1
 :endArgs
 
 set javaOpts=%javaOpts% %defaultXmx% %defaultXss%
-call "%java_exe%" %javaOpts% -Djava.ext.dirs="%frameworkdir%" -cp "%jarpath%" com.android.tools.r8.D8 %params%
+call "%java_exe%" %javaOpts% -cp "%jarpath%" com.android.tools.r8.D8 %params%
 

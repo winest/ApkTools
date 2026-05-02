@@ -1,6 +1,6 @@
 @echo off
 setlocal
-set BASENAME=apktool-
+set BASENAME=apktool-ver
 chcp 65001 2>nul >nul
 
 set java_exe=java.exe
@@ -35,5 +35,6 @@ if "%ATTR:~0,1%"=="-" if "%~x1"==".apk" (
     set fastCommand=d
 )
 
+REM Append "--only-main-classes" to the end if needed
 :load
 %java_exe% -jar -Duser.language=en -Dfile.encoding=UTF8 "%~dp0%BASENAME%%max%.jar" %fastCommand% %*
